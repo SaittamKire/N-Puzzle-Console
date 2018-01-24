@@ -1,0 +1,202 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ConsoleApp1
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+
+            Game game = new Game();
+            game.Run();
+
+        }
+    }
+
+
+    class Game
+    {
+        char rungame;
+        ConsoleKey input;
+
+
+        public void Run()
+        {
+            while (true)
+            {
+                Console.Clear();
+                int size;
+
+                string greeting = "How many squares on each side do you want in your N-puzzle?";
+                Console.SetCursorPosition((Console.WindowWidth - greeting.Length) / 2, Console.WindowHeight / 2);
+                Console.WriteLine(greeting);
+                Console.SetCursorPosition(Console.WindowWidth / 2, (Console.WindowHeight / 2) + 1);
+
+                size = Convert.ToInt32(Console.ReadLine());
+
+                Puzzle puzzle = new Puzzle(size);
+
+                while (true)
+                {
+                    while (!Console.KeyAvailable)
+                    {
+                        Console.Clear();
+                        puzzle.PrintPuzzleBody();
+                        if (CompletionCheck(puzzle, size) == 1)
+                        {
+                            break;
+                        }
+                        input = Console.ReadKey(true).Key;
+                        switch (input)
+                        {
+                            case ConsoleKey.LeftArrow: puzzle.tile.Switch(puzzle.Body, 0, -1); break;
+                            case ConsoleKey.RightArrow: puzzle.tile.Switch(puzzle.Body, 0, +1); break;
+                            case ConsoleKey.UpArrow: puzzle.tile.Switch(puzzle.Body, -1, 0); break;
+                            case ConsoleKey.DownArrow: puzzle.tile.Switch(puzzle.Body, +1, 0); break;
+                        }
+                    }
+                    if (CompletionCheck(puzzle, size) == 1)
+                    {
+                        Console.Clear();
+                        string win1 = "Congratulations,";
+                        string win2 = "You beat the game!";
+                        string win3 = "Do you want to try again? (y)";
+                        Console.SetCursorPosition((Console.WindowWidth - win1.Length) / 2, Console.WindowHeight / 2);
+                        Console.WriteLine(win1);
+                        Console.SetCursorPosition((Console.WindowWidth - win2.Length) / 2, (Console.WindowHeight / 2) + 1);
+                        Console.WriteLine(win2);
+                        Console.SetCursorPosition((Console.WindowWidth - win3.Length) / 2, (Console.WindowHeight / 2) + 2);
+                        Console.WriteLine(win3);
+                        rungame = Console.ReadKey().KeyChar;
+                        if (rungame == 'y')
+                            break;
+                        else
+                            return;
+                    }
+                }
+            }
+        }
+
+        int CompletionCheck(Puzzle puzzle, int size)
+        {
+            int Data;
+            for (int i = 0; i < size; i++)  //Håller koll på index i y-led i 2d-arrayen
+            {
+                for (int j = 0; j < size; j++) //Håller koll på index i x-led i 2d-arrayen
+                {
+                    Data = (i * size) + j + 1;
+                    if (puzzle.Body[i, j] != Data.ToString("00"))
+                    {
+                        if ((i == size - 1) && (j == size - 1))
+                            break;
+                        return 0;
+                    }
+                }
+            }
+            Encoding e = Encoding.GetEncoding(437);
+
+            if (puzzle.Body[size -1, size - 1] != e.GetString(new byte[] { 254 }))
+                return 0;
+
+            return 1;
+        }
+    }
+
+
+   class Puzzle
+    {
+        int size;
+        public string[,] Body;
+        public Tile tile;
+        public Puzzle(int amount)
+        {
+            size = amount; Body = new string[size, size];
+            tile = new Tile(size);
+            InitializeBody(size -1);
+            ScrambleBody();
+        }
+        void InitializeBody(int tileCoordinate)
+        {
+            int Data;
+            for (int i = 0; i < size; i++)  //Håller koll på index i x-led i 2d-arrayen
+            {
+                for (int j = 0; j < size; j++) //Håller koll på index i y-led i 2d-arrayen
+                {
+                    Data = (i * size) + j + 1;
+                    Body[i, j] = Data.ToString("00");
+                }
+            }
+
+            Encoding e = Encoding.GetEncoding(437);
+            Body[tileCoordinate, tileCoordinate] = e.GetString(new byte[] { 254 }); //Efter att array har fått värde ex 1-9 byts sista siffran ut till tom ruta
+        }
+
+        public void PrintPuzzleBody()
+        {
+            Console.Clear();
+            for (int i = 0; i < size; i++)
+            {
+                Console.SetCursorPosition((Console.WindowWidth - size) / 2 - size, (Console.WindowHeight / 2) - (size/2) + i); //Lägger printen
+                for (int j = 0; j < size; j++)                                                                  // fint i mitten på skärmen
+                {
+                    Console.Write(Body[i, j] + " ");
+                }
+                if (i == size - 1)
+                    break;
+                Console.Write("\n");
+            }
+        }
+
+        void ScrambleBody()
+        {
+            int Move;
+            Random random = new Random();
+            for (int i = 0; i < 100; i++)
+            {
+                Move = random.Next(1, 5);
+
+                switch (Move)
+                {
+                    case 1: tile.Switch(Body, 0, -1); break;   //Höger
+                    case 2: tile.Switch(Body, 0, +1); break;   //Vänster
+                    case 3: tile.Switch(Body, -1, 0); break;   //Upp
+                    case 4: tile.Switch(Body, +1, 0); break;   //Ned
+                }
+            }
+        }
+
+    }
+
+
+    class Tile
+    {
+        int horizontal, vertical, size;  //size är storleken på arrayens sidor
+
+        public Tile(int puzzleSide)
+        {
+            horizontal = puzzleSide - 1;
+            vertical = puzzleSide - 1;
+            size = puzzleSide;
+        }
+
+        public void Switch(string[,] Body, int x, int y)
+        {
+            if (((horizontal + y) >= size) || ((horizontal + y) < 0) || (vertical + x >= size) || (vertical + x < 0)) //check så att man inte går utanför "banan"
+            {
+                return;
+            }
+            string temp = string.Copy(Body[vertical, horizontal]);   //Plockar ut den blanka rutan och lägger i temp sträng
+
+            Body[vertical, horizontal] = string.Copy(Body[vertical + x, horizontal + y]); //Kopierar talet till rutans plats
+
+            vertical += x;        //Uppdaterar värdet för x&y, dvs vart den blanka rutan finns
+            horizontal += y;
+            Body[vertical, horizontal] = string.Copy(temp);     //Kopierar in rutan på rätt plats
+
+        }
+    }
+}
